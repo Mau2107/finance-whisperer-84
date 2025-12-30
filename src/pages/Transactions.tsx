@@ -1,8 +1,8 @@
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Search, Filter, Plus, Download, Calendar as CalendarIcon } from 'lucide-react';
-import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns';
-import { useFinanceStore } from '@/store/financeStore';
+import { Search, Plus, Download, Calendar as CalendarIcon, Loader2 } from 'lucide-react';
+import { format, subMonths } from 'date-fns';
+import { useTransactions } from '@/hooks/useTransactions';
 import { TransactionList } from '@/components/dashboard/TransactionList';
 import { AddTransactionModal } from '@/components/dashboard/AddTransactionModal';
 import { Button } from '@/components/ui/button';
@@ -34,7 +34,7 @@ export default function Transactions() {
     to: new Date(),
   });
 
-  const { transactions, deleteTransaction } = useFinanceStore();
+  const { transactions, isLoading, deleteTransaction } = useTransactions();
 
   const allCategories = [...EXPENSE_CATEGORIES, ...INCOME_CATEGORIES];
 
@@ -43,7 +43,7 @@ export default function Transactions() {
       // Search filter
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
-        const matchesDescription = tx.description.toLowerCase().includes(query);
+        const matchesDescription = tx.description?.toLowerCase().includes(query);
         const matchesCategory = tx.category.toLowerCase().includes(query);
         if (!matchesDescription && !matchesCategory) return false;
       }
@@ -85,9 +85,9 @@ export default function Transactions() {
       format(new Date(tx.date), 'yyyy-MM-dd'),
       tx.type,
       tx.category,
-      tx.description,
+      tx.description || '',
       tx.amount.toString(),
-      tx.paymentMethod,
+      tx.paymentMethod || '',
     ]);
 
     const csvContent = [headers, ...rows].map((row) => row.join(',')).join('\n');
@@ -99,6 +99,14 @@ export default function Transactions() {
     a.click();
     URL.revokeObjectURL(url);
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <>
@@ -178,7 +186,7 @@ export default function Transactions() {
             </div>
 
             {/* Type Filter */}
-            <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as any)}>
+            <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as 'all' | TransactionType)}>
               <SelectTrigger className="input-glass">
                 <SelectValue placeholder="All types" />
               </SelectTrigger>

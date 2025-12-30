@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
-import { TrendingUp, TrendingDown, PiggyBank, AlertTriangle, ArrowUpRight } from 'lucide-react';
-import { useFinanceStore } from '@/store/financeStore';
+import { TrendingUp, TrendingDown, PiggyBank, AlertTriangle, ArrowUpRight, Loader2 } from 'lucide-react';
+import { useTransactions } from '@/hooks/useTransactions';
 import { SpendingChart } from '@/components/charts/SpendingChart';
 import { MonthlyChart } from '@/components/charts/MonthlyChart';
 import { EXPENSE_CATEGORIES, CATEGORY_COLORS } from '@/types/finance';
@@ -19,17 +19,16 @@ import {
 
 export default function Analytics() {
   const {
-    transactions,
+    isLoading,
     getTotalIncome,
     getTotalExpense,
     getCategoryTotals,
     getMonthlyData,
-  } = useFinanceStore();
+  } = useTransactions();
 
   const totalIncome = getTotalIncome();
   const totalExpense = getTotalExpense();
   const expenseByCategory = getCategoryTotals('expense');
-  const incomeByCategory = getCategoryTotals('income');
   const monthlyData = getMonthlyData();
 
   const formatCurrency = (amount: number) =>
@@ -59,7 +58,7 @@ export default function Analytics() {
   const avgMonthlyIncome = totalIncome / Math.max(monthlyData.length, 1);
   const projectedYearlySavings = (avgMonthlyIncome - avgMonthlyExpense) * 12;
 
-  const CustomTooltip = ({ active, payload }: any) => {
+  const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ payload: { fullName: string; amount: number } }> }) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
       return (
@@ -73,6 +72,14 @@ export default function Analytics() {
     }
     return null;
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <>

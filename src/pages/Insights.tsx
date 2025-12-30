@@ -1,18 +1,18 @@
 import { motion } from 'framer-motion';
-import { Sparkles, Lightbulb, TrendingUp, AlertCircle, Target, Zap } from 'lucide-react';
-import { useFinanceStore } from '@/store/financeStore';
-import { EXPENSE_CATEGORIES, CATEGORY_COLORS } from '@/types/finance';
+import { Sparkles, Lightbulb, TrendingUp, AlertCircle, Target, Zap, Loader2 } from 'lucide-react';
+import { useTransactions } from '@/hooks/useTransactions';
+import { EXPENSE_CATEGORIES } from '@/types/finance';
 import { Helmet } from 'react-helmet-async';
 import { cn } from '@/lib/utils';
 
 export default function Insights() {
   const {
-    transactions,
+    isLoading,
     getTotalIncome,
     getTotalExpense,
     getCategoryTotals,
     getMonthlyData,
-  } = useFinanceStore();
+  } = useTransactions();
 
   const totalIncome = getTotalIncome();
   const totalExpense = getTotalExpense();
@@ -122,6 +122,14 @@ export default function Insights() {
         : 'Keep tracking your expenses to unlock personalized quick wins!',
     },
   ];
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <>

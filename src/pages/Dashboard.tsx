@@ -7,11 +7,11 @@ import {
   Plus,
   ArrowRight,
   Calendar,
-  Filter,
+  Loader2,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
-import { useFinanceStore } from '@/store/financeStore';
+import { useTransactions } from '@/hooks/useTransactions';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { TransactionList } from '@/components/dashboard/TransactionList';
 import { AddTransactionModal } from '@/components/dashboard/AddTransactionModal';
@@ -24,13 +24,14 @@ export default function Dashboard() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const {
     transactions,
+    isLoading,
     getTotalIncome,
     getTotalExpense,
     getBalance,
     getCategoryTotals,
     getMonthlyData,
     deleteTransaction,
-  } = useFinanceStore();
+  } = useTransactions();
 
   const totalIncome = getTotalIncome();
   const totalExpense = getTotalExpense();
@@ -64,6 +65,14 @@ export default function Dashboard() {
   const currentMonthIncome = currentMonthTransactions
     .filter((tx) => tx.type === 'income')
     .reduce((sum, tx) => sum + tx.amount, 0);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <>
