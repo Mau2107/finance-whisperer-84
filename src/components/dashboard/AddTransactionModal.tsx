@@ -25,7 +25,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { useFinanceStore } from '@/store/financeStore';
+import { useTransactions } from '@/hooks/useTransactions';
 import {
   TransactionType,
   PaymentMethod,
@@ -41,7 +41,7 @@ interface AddTransactionModalProps {
 }
 
 export function AddTransactionModal({ open, onOpenChange }: AddTransactionModalProps) {
-  const { addTransaction } = useFinanceStore();
+  const { addTransaction } = useTransactions();
   const { toast } = useToast();
   
   const [type, setType] = useState<TransactionType>('expense');

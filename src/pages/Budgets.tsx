@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Target, Trash2, Edit2 } from 'lucide-react';
-import { useFinanceStore } from '@/store/financeStore';
+import { Plus, Target, Trash2, Loader2 } from 'lucide-react';
+import { useBudgets } from '@/hooks/useBudgets';
+import { useTransactions } from '@/hooks/useTransactions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Progress } from '@/components/ui/progress';
 import {
   Dialog,
   DialogContent,
@@ -26,7 +26,8 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
 export default function Budgets() {
-  const { budgets, addBudget, deleteBudget, getCategoryTotals } = useFinanceStore();
+  const { budgets, isLoading, addBudget, deleteBudget } = useBudgets();
+  const { getCategoryTotals } = useTransactions();
   const { toast } = useToast();
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [newCategory, setNewCategory] = useState('');
@@ -57,11 +58,6 @@ export default function Budgets() {
       period: 'monthly',
     });
 
-    toast({
-      title: 'Budget created',
-      description: `Budget for ${EXPENSE_CATEGORIES.find(c => c.value === newCategory)?.name || newCategory} set to ${formatCurrency(parseFloat(newLimit))}`,
-    });
-
     setNewCategory('');
     setNewLimit('');
     setIsAddOpen(false);
@@ -71,6 +67,14 @@ export default function Budgets() {
   const availableCategories = EXPENSE_CATEGORIES.filter(
     (c) => !usedCategories.includes(c.value)
   );
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <>
