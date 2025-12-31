@@ -6,9 +6,14 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signUp: (email: string, password: string, fullName?: string) => Promise<{ error: Error | null }>;
+  isEmailVerified: boolean;
+  pendingVerificationEmail: string | null;
+  signUp: (email: string, password: string, fullName?: string) => Promise<{ error: Error | null; needsVerification: boolean }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
+  verifyOtp: (email: string, token: string) => Promise<{ error: Error | null }>;
+  resendOtp: (email: string) => Promise<{ error: Error | null }>;
+  clearPendingVerification: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -25,6 +30,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [pendingVerificationEmail, setPendingVerificationEmail] = useState<string | null>(null);
+
+  // Check if email is verified
+  const isEmailVerified = user?.email_confirmed_at != null;
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -33,6 +42,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+        
+        // Clear pending verification if user is now verified
+        if (session?.user?.email_confirmed_at) {
+          setPendingVerificationEmail(null);
+        }
       }
     );
 
@@ -47,37 +61,88 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const signUp = async (email: string, password: string, fullName?: string) => {
-    const redirectUrl = `${window.location.origin}/`;
-    
-    const { error } = await supabase.auth.signUp({
+    const { error, data } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        emailRedirectTo: redirectUrl,
         data: {
           full_name: fullName,
         },
       },
     });
     
-    return { error: error as Error | null };
+    if (!error && data.user && !data.user.email_confirmed_at) {
+      // User needs to verify email
+      setPendingVerificationEmail(email);
+      return { error: null, needsVerification: true };
+    }
+    
+    return { error: error as Error | null, needsVerification: false };
   };
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
+    const { error, data } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
+    
+    // Check if user exists but email not verified
+    if (!error && data.user && !data.user.email_confirmed_at) {
+      setPendingVerificationEmail(email);
+      // Sign out because we don't want unverified users logged in
+      await supabase.auth.signOut();
+      return { error: new Error('Please verify your email before logging in. Check your inbox for the OTP.') };
+    }
     
     return { error: error as Error | null };
   };
 
   const signOut = async () => {
+    setPendingVerificationEmail(null);
     await supabase.auth.signOut();
   };
 
+  const verifyOtp = async (email: string, token: string) => {
+    const { error } = await supabase.auth.verifyOtp({
+      email,
+      token,
+      type: 'email',
+    });
+    
+    if (!error) {
+      setPendingVerificationEmail(null);
+    }
+    
+    return { error: error as Error | null };
+  };
+
+  const resendOtp = async (email: string) => {
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email,
+    });
+    
+    return { error: error as Error | null };
+  };
+
+  const clearPendingVerification = () => {
+    setPendingVerificationEmail(null);
+  };
+
   return (
-    <AuthContext.Provider value={{ user, session, loading, signUp, signIn, signOut }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      session, 
+      loading, 
+      isEmailVerified,
+      pendingVerificationEmail,
+      signUp, 
+      signIn, 
+      signOut,
+      verifyOtp,
+      resendOtp,
+      clearPendingVerification
+    }}>
       {children}
     </AuthContext.Provider>
   );
