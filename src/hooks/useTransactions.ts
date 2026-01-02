@@ -1,9 +1,9 @@
+import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Transaction, TransactionType } from '@/types/finance';
 import { toast } from 'sonner';
-
 interface DbTransaction {
   id: string;
   user_id: string;
@@ -53,6 +53,31 @@ export const useTransactions = () => {
     },
     enabled: !!user,
   });
+
+  // Multi-device realtime sync
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('transactions-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'transactions',
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['transactions', user.id] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, queryClient]);
 
   const addTransaction = useMutation({
     mutationFn: async (transaction: Omit<Transaction, 'id' | 'createdAt' | 'updatedAt'>) => {
