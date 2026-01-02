@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -41,6 +42,31 @@ export const useBudgets = () => {
     },
     enabled: !!user,
   });
+
+  // Multi-device realtime sync
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('budgets-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'budgets',
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['budgets', user.id] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, queryClient]);
 
   const addBudget = useMutation({
     mutationFn: async (budget: Omit<Budget, 'id' | 'spent'>) => {
