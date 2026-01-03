@@ -12,6 +12,7 @@ import Transactions from "./pages/Transactions";
 import Analytics from "./pages/Analytics";
 import Budgets from "./pages/Budgets";
 import Insights from "./pages/Insights";
+import RecurringTransactions from "./pages/RecurringTransactions";
 import Settings from "./pages/Settings";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
@@ -35,6 +36,7 @@ const App = () => (
                   <Route path="/analytics" element={<Analytics />} />
                   <Route path="/budgets" element={<Budgets />} />
                   <Route path="/insights" element={<Insights />} />
+                  <Route path="/recurring" element={<RecurringTransactions />} />
                   <Route path="/settings" element={<Settings />} />
                 </Route>
               </Route>
