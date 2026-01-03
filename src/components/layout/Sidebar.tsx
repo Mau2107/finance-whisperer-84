@@ -13,6 +13,7 @@ import {
   Sun,
   Moon,
   Sparkles,
+  Repeat,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -26,6 +27,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
   { icon: ArrowUpDown, label: 'Transactions', path: '/transactions' },
+  { icon: Repeat, label: 'Recurring', path: '/recurring' },
   { icon: PieChart, label: 'Analytics', path: '/analytics' },
   { icon: Target, label: 'Budgets', path: '/budgets' },
   { icon: Sparkles, label: 'AI Insights', path: '/insights' },
