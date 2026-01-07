@@ -3,7 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Loader2 } from 'lucide-react';
 
 export const ProtectedRoute = () => {
-  const { user, loading, isEmailVerified } = useAuth();
+  const { user, loading } = useAuth();
 
   if (loading) {
     return (
@@ -13,8 +13,7 @@ export const ProtectedRoute = () => {
     );
   }
 
-  // Block access if not logged in or email not verified
-  if (!user || !isEmailVerified) {
+  if (!user) {
     return <Navigate to="/auth" replace />;
   }
 
