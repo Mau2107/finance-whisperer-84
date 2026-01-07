@@ -14,9 +14,12 @@ import {
   Moon,
   Sparkles,
   Repeat,
+  User,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface NavItem {
   icon: React.ComponentType<{ className?: string }>;
@@ -42,6 +45,12 @@ interface SidebarProps {
 export function Sidebar({ isDarkMode, toggleTheme }: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const location = useLocation();
+  const { user } = useAuth();
+
+  // Get user info from Google profile
+  const avatarUrl = user?.user_metadata?.avatar_url || user?.user_metadata?.picture;
+  const userName = user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email?.split('@')[0];
+  const userInitials = userName?.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2) || 'U';
 
   return (
     <motion.aside
@@ -121,8 +130,35 @@ export function Sidebar({ isDarkMode, toggleTheme }: SidebarProps) {
         })}
       </nav>
 
-      {/* Bottom actions */}
-      <div className="p-4 border-t border-border space-y-2">
+      {/* User profile & bottom actions */}
+      <div className="p-4 border-t border-border space-y-3">
+        {/* User profile */}
+        <div className={cn(
+          "flex items-center gap-3 px-2 py-2 rounded-xl bg-accent/50",
+          isCollapsed && "justify-center px-0"
+        )}>
+          <Avatar className="h-9 w-9 flex-shrink-0">
+            <AvatarImage src={avatarUrl} alt={userName} />
+            <AvatarFallback className="bg-primary/10 text-primary text-sm">
+              {userInitials}
+            </AvatarFallback>
+          </Avatar>
+          <AnimatePresence mode="wait">
+            {!isCollapsed && (
+              <motion.div
+                initial={{ opacity: 0, width: 0 }}
+                animate={{ opacity: 1, width: 'auto' }}
+                exit={{ opacity: 0, width: 0 }}
+                className="overflow-hidden"
+              >
+                <p className="text-sm font-medium text-foreground truncate max-w-[140px]">
+                  {userName}
+                </p>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
         {/* Theme toggle */}
         <motion.button
           whileHover={{ scale: 1.02 }}
