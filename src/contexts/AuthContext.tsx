@@ -49,7 +49,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: 'https://fw-web-gamma.vercel.app/',
+        skipBrowserRedirect: false,
       },
     });
     
