@@ -6,25 +6,17 @@ import { Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export function MainLayout() {
-  const [isDarkMode, setIsDarkMode] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [sidebarWidth, setSidebarWidth] = useState(280);
 
   useEffect(() => {
-    if (isDarkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, [isDarkMode]);
-
-  const toggleTheme = () => setIsDarkMode(!isDarkMode);
+    document.documentElement.classList.remove('dark');
+  }, []);
 
   return (
     <div className="min-h-screen bg-background">
       {/* Desktop Sidebar */}
       <div className="hidden lg:block">
-        <Sidebar isDarkMode={isDarkMode} toggleTheme={toggleTheme} />
+        <Sidebar />
       </div>
 
       {/* Mobile Header */}
@@ -67,7 +59,7 @@ export function MainLayout() {
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
             className="lg:hidden fixed left-0 top-0 z-50 h-full w-72"
           >
-            <Sidebar isDarkMode={isDarkMode} toggleTheme={toggleTheme} />
+            <Sidebar />
           </motion.div>
         )}
       </AnimatePresence>

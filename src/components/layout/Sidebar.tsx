@@ -10,11 +10,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Wallet,
-  Sun,
-  Moon,
   Sparkles,
   Repeat,
-  User,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -37,12 +34,7 @@ const navItems: NavItem[] = [
   { icon: Settings, label: 'Settings', path: '/settings' },
 ];
 
-interface SidebarProps {
-  isDarkMode: boolean;
-  toggleTheme: () => void;
-}
-
-export function Sidebar({ isDarkMode, toggleTheme }: SidebarProps) {
+export function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const location = useLocation();
   const { user } = useAuth();
@@ -158,31 +150,6 @@ export function Sidebar({ isDarkMode, toggleTheme }: SidebarProps) {
             )}
           </AnimatePresence>
         </div>
-
-        {/* Theme toggle */}
-        <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          onClick={toggleTheme}
-          className="flex w-full items-center gap-3 px-4 py-3 rounded-xl text-muted-foreground hover:bg-accent hover:text-foreground transition-all duration-200"
-        >
-          {isDarkMode ? (
-            <Sun className="h-5 w-5" />
-          ) : (
-            <Moon className="h-5 w-5" />
-          )}
-          <AnimatePresence mode="wait">
-            {!isCollapsed && (
-              <motion.span
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-              >
-                {isDarkMode ? 'Light Mode' : 'Dark Mode'}
-              </motion.span>
-            )}
-          </AnimatePresence>
-        </motion.button>
 
         {/* Collapse toggle */}
         <Button

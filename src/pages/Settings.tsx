@@ -1,12 +1,10 @@
-import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Settings as SettingsIcon, Moon, Sun, Palette, LogOut, User } from 'lucide-react';
+import { Settings as SettingsIcon, LogOut, User } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useBudgets } from '@/hooks/useBudgets';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 import { Helmet } from 'react-helmet-async';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -16,18 +14,6 @@ export default function Settings() {
   const { transactions } = useTransactions();
   const { budgets } = useBudgets();
   const navigate = useNavigate();
-  const [isDarkMode, setIsDarkMode] = useState(
-    document.documentElement.classList.contains('dark')
-  );
-
-  const toggleTheme = () => {
-    if (isDarkMode) {
-      document.documentElement.classList.remove('dark');
-    } else {
-      document.documentElement.classList.add('dark');
-    }
-    setIsDarkMode(!isDarkMode);
-  };
 
   const handleSignOut = async () => {
     await signOut();
@@ -87,38 +73,6 @@ export default function Settings() {
                 <LogOut className="h-4 w-4" />
                 Sign Out
               </Button>
-            </div>
-          </motion.div>
-
-          {/* Appearance */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="glass-card p-6"
-          >
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <Palette className="h-5 w-5 text-primary" />
-              </div>
-              <h2 className="text-lg font-semibold text-foreground">Appearance</h2>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label className="text-foreground">Dark Mode</Label>
-                <p className="text-sm text-muted-foreground">
-                  Switch between light and dark themes
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <Sun className="h-4 w-4 text-muted-foreground" />
-                <Switch
-                  checked={isDarkMode}
-                  onCheckedChange={toggleTheme}
-                />
-                <Moon className="h-4 w-4 text-muted-foreground" />
-              </div>
             </div>
           </motion.div>
 
