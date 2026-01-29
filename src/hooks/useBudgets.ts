@@ -1,157 +1,52 @@
-import { useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+import { useState, useCallback } from 'react';
 import { Budget } from '@/types/finance';
 import { toast } from 'sonner';
 
-interface DbBudget {
-  id: string;
-  user_id: string;
-  category: string;
-  amount: number;
-  period: string;
-  created_at: string;
-  updated_at: string;
-}
-
-const mapDbToBudget = (db: DbBudget): Budget => ({
-  id: db.id,
-  category: db.category,
-  limit: Number(db.amount),
-  spent: 0, // Will be calculated from transactions
-  period: db.period as Budget['period'],
-});
+// Mock data for demo purposes
+const MOCK_BUDGETS: Budget[] = [
+  { id: '1', category: 'food', limit: 8000, spent: 0, period: 'monthly' },
+  { id: '2', category: 'transport', limit: 5000, spent: 0, period: 'monthly' },
+  { id: '3', category: 'entertainment', limit: 3000, spent: 0, period: 'monthly' },
+];
 
 export const useBudgets = () => {
-  const { user } = useAuth();
-  const queryClient = useQueryClient();
+  const [budgets, setBudgets] = useState<Budget[]>(MOCK_BUDGETS);
+  const [isLoading] = useState(false);
 
-  const { data: budgets = [], isLoading } = useQuery({
-    queryKey: ['budgets', user?.id],
-    queryFn: async () => {
-      if (!user) return [];
-      
-      const { data, error } = await supabase
-        .from('budgets')
-        .select('*')
-        .eq('user_id', user.id);
+  const addBudget = useCallback((budget: Omit<Budget, 'id' | 'spent'>) => {
+    // Check for duplicate category
+    const exists = budgets.some((b) => b.category === budget.category);
+    if (exists) {
+      toast.error('Budget for this category already exists');
+      return;
+    }
 
-      if (error) throw error;
-      return (data || []).map(mapDbToBudget);
-    },
-    enabled: !!user,
-  });
-
-  // Multi-device realtime sync
-  useEffect(() => {
-    if (!user) return;
-
-    const channel = supabase
-      .channel('budgets-realtime')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'budgets',
-          filter: `user_id=eq.${user.id}`,
-        },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ['budgets', user.id] });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
+    const newBudget: Budget = {
+      ...budget,
+      id: crypto.randomUUID(),
+      spent: 0,
     };
-  }, [user, queryClient]);
+    setBudgets((prev) => [...prev, newBudget]);
+    toast.success('Budget created');
+  }, [budgets]);
 
-  const addBudget = useMutation({
-    mutationFn: async (budget: Omit<Budget, 'id' | 'spent'>) => {
-      if (!user) throw new Error('Not authenticated');
+  const updateBudget = useCallback((id: string, updates: Partial<Budget>) => {
+    setBudgets((prev) =>
+      prev.map((b) => (b.id === id ? { ...b, ...updates } : b))
+    );
+    toast.success('Budget updated');
+  }, []);
 
-      const { data, error } = await supabase
-        .from('budgets')
-        .insert({
-          user_id: user.id,
-          category: budget.category,
-          amount: budget.limit,
-          period: budget.period,
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-      return mapDbToBudget(data);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['budgets'] });
-      toast.success('Budget created');
-    },
-    onError: (error) => {
-      if (error.message.includes('duplicate key')) {
-        toast.error('Budget for this category already exists');
-      } else {
-        toast.error('Failed to create budget: ' + error.message);
-      }
-    },
-  });
-
-  const updateBudget = useMutation({
-    mutationFn: async ({ id, updates }: { id: string; updates: Partial<Budget> }) => {
-      if (!user) throw new Error('Not authenticated');
-
-      const dbUpdates: Record<string, unknown> = {};
-      if (updates.category !== undefined) dbUpdates.category = updates.category;
-      if (updates.limit !== undefined) dbUpdates.amount = updates.limit;
-      if (updates.period !== undefined) dbUpdates.period = updates.period;
-
-      const { error } = await supabase
-        .from('budgets')
-        .update(dbUpdates)
-        .eq('id', id)
-        .eq('user_id', user.id);
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['budgets'] });
-      toast.success('Budget updated');
-    },
-    onError: (error) => {
-      toast.error('Failed to update budget: ' + error.message);
-    },
-  });
-
-  const deleteBudget = useMutation({
-    mutationFn: async (id: string) => {
-      if (!user) throw new Error('Not authenticated');
-
-      const { error } = await supabase
-        .from('budgets')
-        .delete()
-        .eq('id', id)
-        .eq('user_id', user.id);
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['budgets'] });
-      toast.success('Budget deleted');
-    },
-    onError: (error) => {
-      toast.error('Failed to delete budget: ' + error.message);
-    },
-  });
+  const deleteBudget = useCallback((id: string) => {
+    setBudgets((prev) => prev.filter((b) => b.id !== id));
+    toast.success('Budget deleted');
+  }, []);
 
   return {
     budgets,
     isLoading,
-    addBudget: addBudget.mutate,
-    updateBudget: (id: string, updates: Partial<Budget>) => 
-      updateBudget.mutate({ id, updates }),
-    deleteBudget: deleteBudget.mutate,
+    addBudget,
+    updateBudget,
+    deleteBudget,
   };
 };

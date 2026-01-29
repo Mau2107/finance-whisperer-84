@@ -1,10 +1,18 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { User, Session } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
+import { createContext, useContext, ReactNode } from 'react';
+
+// Mock user for frontend-only mode
+const MOCK_USER = {
+  id: 'demo-user',
+  email: 'demo@financeiq.app',
+  user_metadata: {
+    full_name: 'Demo User',
+    name: 'Demo User',
+  },
+};
 
 interface AuthContextType {
-  user: User | null;
-  session: Session | null;
+  user: typeof MOCK_USER | null;
+  session: null;
   loading: boolean;
   signInWithGoogle: () => Promise<{ error: Error | null }>;
   signInWithEmail: (email: string) => Promise<{ error: Error | null }>;
@@ -24,78 +32,16 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Always return mock user for frontend-only mode
+  const user = MOCK_USER;
+  const session = null;
+  const loading = false;
 
-  useEffect(() => {
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
-      }
-    );
-
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const signInWithGoogle = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        skipBrowserRedirect: false,
-      },
-    });
-    
-    return { error: error as Error | null };
-  };
-
-  const signInWithEmail = async (email: string) => {
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-    });
-    
-    return { error: error as Error | null };
-  };
-
-  const signInWithPhone = async (phone: string) => {
-    const { error } = await supabase.auth.signInWithOtp({
-      phone,
-    });
-    
-    return { error: error as Error | null };
-  };
-
-  const verifyOtp = async (emailOrPhone: string, token: string, type: 'email' | 'sms') => {
-    if (type === 'email') {
-      const { error } = await supabase.auth.verifyOtp({
-        email: emailOrPhone,
-        token,
-        type: 'email',
-      });
-      return { error: error as Error | null };
-    } else {
-      const { error } = await supabase.auth.verifyOtp({
-        phone: emailOrPhone,
-        token,
-        type: 'sms',
-      });
-      return { error: error as Error | null };
-    }
-  };
-
-  const signOut = async () => {
-    await supabase.auth.signOut();
-  };
+  const signInWithGoogle = async () => ({ error: null });
+  const signInWithEmail = async () => ({ error: null });
+  const signInWithPhone = async () => ({ error: null });
+  const verifyOtp = async () => ({ error: null });
+  const signOut = async () => {};
 
   return (
     <AuthContext.Provider value={{ 

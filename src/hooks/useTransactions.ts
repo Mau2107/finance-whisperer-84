@@ -1,188 +1,172 @@
-import { useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+import { useState, useCallback } from 'react';
 import { Transaction, TransactionType } from '@/types/finance';
 import { toast } from 'sonner';
-interface DbTransaction {
-  id: string;
-  user_id: string;
-  type: string;
-  amount: number;
-  category: string;
-  description: string | null;
-  payment_method: string | null;
-  date: string;
-  tags: string[] | null;
-  is_recurring: boolean | null;
-  created_at: string;
-  updated_at: string;
-}
 
-const mapDbToTransaction = (db: DbTransaction): Transaction => ({
-  id: db.id,
-  type: db.type as TransactionType,
-  amount: Number(db.amount),
-  category: db.category,
-  description: db.description || '',
-  paymentMethod: db.payment_method as Transaction['paymentMethod'],
-  date: db.date,
-  tags: db.tags || [],
-  isRecurring: db.is_recurring || false,
-  createdAt: db.created_at,
-  updatedAt: db.updated_at,
-});
+// Mock data for demo purposes
+const MOCK_TRANSACTIONS: Transaction[] = [
+  {
+    id: '1',
+    type: 'income',
+    amount: 85000,
+    category: 'salary',
+    description: 'Monthly Salary',
+    paymentMethod: 'bank_transfer',
+    date: new Date().toISOString(),
+    tags: [],
+    isRecurring: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: '2',
+    type: 'expense',
+    amount: 25000,
+    category: 'housing',
+    description: 'Rent Payment',
+    paymentMethod: 'bank_transfer',
+    date: new Date().toISOString(),
+    tags: [],
+    isRecurring: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: '3',
+    type: 'expense',
+    amount: 3500,
+    category: 'food',
+    description: 'Groceries',
+    paymentMethod: 'upi',
+    date: new Date(Date.now() - 86400000).toISOString(),
+    tags: [],
+    isRecurring: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: '4',
+    type: 'expense',
+    amount: 1200,
+    category: 'transport',
+    description: 'Uber rides',
+    paymentMethod: 'upi',
+    date: new Date(Date.now() - 172800000).toISOString(),
+    tags: [],
+    isRecurring: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: '5',
+    type: 'expense',
+    amount: 5000,
+    category: 'shopping',
+    description: 'New clothes',
+    paymentMethod: 'card',
+    date: new Date(Date.now() - 259200000).toISOString(),
+    tags: [],
+    isRecurring: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: '6',
+    type: 'income',
+    amount: 15000,
+    category: 'freelance',
+    description: 'Freelance project',
+    paymentMethod: 'bank_transfer',
+    date: new Date(Date.now() - 604800000).toISOString(),
+    tags: [],
+    isRecurring: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: '7',
+    type: 'expense',
+    amount: 2500,
+    category: 'utilities',
+    description: 'Electricity bill',
+    paymentMethod: 'upi',
+    date: new Date(Date.now() - 432000000).toISOString(),
+    tags: [],
+    isRecurring: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+  {
+    id: '8',
+    type: 'expense',
+    amount: 800,
+    category: 'entertainment',
+    description: 'Movie tickets',
+    paymentMethod: 'upi',
+    date: new Date(Date.now() - 518400000).toISOString(),
+    tags: [],
+    isRecurring: false,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  },
+];
 
 export const useTransactions = () => {
-  const { user } = useAuth();
-  const queryClient = useQueryClient();
+  const [transactions, setTransactions] = useState<Transaction[]>(MOCK_TRANSACTIONS);
+  const [isLoading] = useState(false);
 
-  const { data: transactions = [], isLoading } = useQuery({
-    queryKey: ['transactions', user?.id],
-    queryFn: async () => {
-      if (!user) return [];
-      
-      const { data, error } = await supabase
-        .from('transactions')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('date', { ascending: false });
-
-      if (error) throw error;
-      return (data || []).map(mapDbToTransaction);
-    },
-    enabled: !!user,
-  });
-
-  // Multi-device realtime sync
-  useEffect(() => {
-    if (!user) return;
-
-    const channel = supabase
-      .channel('transactions-realtime')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'transactions',
-          filter: `user_id=eq.${user.id}`,
-        },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ['transactions', user.id] });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
+  const addTransaction = useCallback((transaction: Omit<Transaction, 'id' | 'createdAt' | 'updatedAt'>) => {
+    const newTransaction: Transaction = {
+      ...transaction,
+      id: crypto.randomUUID(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
-  }, [user, queryClient]);
+    setTransactions((prev) => [newTransaction, ...prev]);
+    toast.success('Transaction added');
+  }, []);
 
-  const addTransaction = useMutation({
-    mutationFn: async (transaction: Omit<Transaction, 'id' | 'createdAt' | 'updatedAt'>) => {
-      if (!user) throw new Error('Not authenticated');
+  const updateTransaction = useCallback((id: string, updates: Partial<Transaction>) => {
+    setTransactions((prev) =>
+      prev.map((tx) =>
+        tx.id === id
+          ? { ...tx, ...updates, updatedAt: new Date().toISOString() }
+          : tx
+      )
+    );
+    toast.success('Transaction updated');
+  }, []);
 
-      const { data, error } = await supabase
-        .from('transactions')
-        .insert({
-          user_id: user.id,
-          type: transaction.type,
-          amount: transaction.amount,
-          category: transaction.category,
-          description: transaction.description || null,
-          payment_method: transaction.paymentMethod || null,
-          date: transaction.date,
-          tags: transaction.tags || [],
-          is_recurring: transaction.isRecurring || false,
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-      return mapDbToTransaction(data);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['transactions'] });
-      toast.success('Transaction added');
-    },
-    onError: (error) => {
-      toast.error('Failed to add transaction: ' + error.message);
-    },
-  });
-
-  const updateTransaction = useMutation({
-    mutationFn: async ({ id, updates }: { id: string; updates: Partial<Transaction> }) => {
-      if (!user) throw new Error('Not authenticated');
-
-      const dbUpdates: Record<string, unknown> = {};
-      if (updates.type !== undefined) dbUpdates.type = updates.type;
-      if (updates.amount !== undefined) dbUpdates.amount = updates.amount;
-      if (updates.category !== undefined) dbUpdates.category = updates.category;
-      if (updates.description !== undefined) dbUpdates.description = updates.description;
-      if (updates.paymentMethod !== undefined) dbUpdates.payment_method = updates.paymentMethod;
-      if (updates.date !== undefined) dbUpdates.date = updates.date;
-      if (updates.tags !== undefined) dbUpdates.tags = updates.tags;
-      if (updates.isRecurring !== undefined) dbUpdates.is_recurring = updates.isRecurring;
-
-      const { error } = await supabase
-        .from('transactions')
-        .update(dbUpdates)
-        .eq('id', id)
-        .eq('user_id', user.id);
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['transactions'] });
-      toast.success('Transaction updated');
-    },
-    onError: (error) => {
-      toast.error('Failed to update transaction: ' + error.message);
-    },
-  });
-
-  const deleteTransaction = useMutation({
-    mutationFn: async (id: string) => {
-      if (!user) throw new Error('Not authenticated');
-
-      const { error } = await supabase
-        .from('transactions')
-        .delete()
-        .eq('id', id)
-        .eq('user_id', user.id);
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['transactions'] });
-      toast.success('Transaction deleted');
-    },
-    onError: (error) => {
-      toast.error('Failed to delete transaction: ' + error.message);
-    },
-  });
+  const deleteTransaction = useCallback((id: string) => {
+    setTransactions((prev) => prev.filter((tx) => tx.id !== id));
+    toast.success('Transaction deleted');
+  }, []);
 
   // Computed values
-  const getTotalIncome = () => 
-    transactions.filter(tx => tx.type === 'income').reduce((sum, tx) => sum + tx.amount, 0);
+  const getTotalIncome = useCallback(() => 
+    transactions.filter(tx => tx.type === 'income').reduce((sum, tx) => sum + tx.amount, 0),
+    [transactions]
+  );
 
-  const getTotalExpense = () => 
-    transactions.filter(tx => tx.type === 'expense').reduce((sum, tx) => sum + tx.amount, 0);
+  const getTotalExpense = useCallback(() => 
+    transactions.filter(tx => tx.type === 'expense').reduce((sum, tx) => sum + tx.amount, 0),
+    [transactions]
+  );
 
-  const getBalance = () => getTotalIncome() - getTotalExpense();
+  const getBalance = useCallback(() => getTotalIncome() - getTotalExpense(), [getTotalIncome, getTotalExpense]);
 
-  const getTransactionsByType = (type: TransactionType) => 
-    transactions.filter(tx => tx.type === type);
+  const getTransactionsByType = useCallback((type: TransactionType) => 
+    transactions.filter(tx => tx.type === type),
+    [transactions]
+  );
 
-  const getCategoryTotals = (type: TransactionType) => {
+  const getCategoryTotals = useCallback((type: TransactionType) => {
     return getTransactionsByType(type).reduce((acc, tx) => {
       acc[tx.category] = (acc[tx.category] || 0) + tx.amount;
       return acc;
     }, {} as Record<string, number>);
-  };
+  }, [getTransactionsByType]);
 
-  const getMonthlyData = () => {
+  const getMonthlyData = useCallback(() => {
     const monthlyMap = new Map<string, { income: number; expense: number }>();
     
     transactions.forEach(tx => {
@@ -204,15 +188,14 @@ export const useTransactions = () => {
     return Array.from(monthlyMap.entries())
       .map(([month, data]) => ({ month, ...data }))
       .sort((a, b) => a.month.localeCompare(b.month));
-  };
+  }, [transactions]);
 
   return {
     transactions,
     isLoading,
-    addTransaction: addTransaction.mutate,
-    updateTransaction: (id: string, updates: Partial<Transaction>) => 
-      updateTransaction.mutate({ id, updates }),
-    deleteTransaction: deleteTransaction.mutate,
+    addTransaction,
+    updateTransaction,
+    deleteTransaction,
     getTotalIncome,
     getTotalExpense,
     getBalance,

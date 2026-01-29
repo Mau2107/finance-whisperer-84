@@ -39,9 +39,9 @@ export function Sidebar() {
   const location = useLocation();
   const { user } = useAuth();
 
-  // Get user info from Google profile
-  const avatarUrl = user?.user_metadata?.avatar_url || user?.user_metadata?.picture;
-  const userName = user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email?.split('@')[0];
+  // Get user info
+  const avatarUrl = '';
+  const userName = user?.user_metadata?.full_name || user?.user_metadata?.name || 'Demo User';
   const userInitials = userName?.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2) || 'U';
 
   return (
