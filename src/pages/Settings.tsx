@@ -1,31 +1,19 @@
 import { motion } from 'framer-motion';
-import { Settings as SettingsIcon, LogOut, User } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+import { Settings as SettingsIcon, User } from 'lucide-react';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useBudgets } from '@/hooks/useBudgets';
-import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Helmet } from 'react-helmet-async';
-import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
 
 export default function Settings() {
-  const { user, signOut } = useAuth();
   const { transactions } = useTransactions();
   const { budgets } = useBudgets();
-  const navigate = useNavigate();
-
-  const handleSignOut = async () => {
-    await signOut();
-    toast.success('Signed out successfully');
-    navigate('/auth', { replace: true });
-  };
 
   return (
     <>
       <Helmet>
         <title>Settings | FinanceIQ</title>
-        <meta name="description" content="Manage your FinanceIQ preferences and account" />
+        <meta name="description" content="Manage your FinanceIQ preferences" />
       </Helmet>
 
       <div className="space-y-8">
@@ -33,7 +21,7 @@ export default function Settings() {
         <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
           <h1 className="text-3xl font-bold text-foreground">Settings</h1>
           <p className="text-muted-foreground mt-1">
-            Manage your preferences and account
+            Manage your preferences
           </p>
         </motion.div>
 
@@ -53,26 +41,13 @@ export default function Settings() {
               <h2 className="text-lg font-semibold text-foreground">Account</h2>
             </div>
 
-            <div className="flex items-center justify-between py-3 border-b border-border">
-              <div className="space-y-0.5">
-                <Label className="text-foreground">Email</Label>
-                <p className="text-sm text-muted-foreground">
-                  {user?.email}
-                </p>
-              </div>
-            </div>
-
             <div className="flex items-center justify-between py-3">
               <div className="space-y-0.5">
-                <Label className="text-foreground">Sign Out</Label>
+                <Label className="text-foreground">Demo Mode</Label>
                 <p className="text-sm text-muted-foreground">
-                  Sign out of your account
+                  You're using the demo version of FinanceIQ
                 </p>
               </div>
-              <Button onClick={handleSignOut} variant="destructive" className="gap-2">
-                <LogOut className="h-4 w-4" />
-                Sign Out
-              </Button>
             </div>
           </motion.div>
 
@@ -80,7 +55,7 @@ export default function Settings() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
+            transition={{ delay: 0.2 }}
             className="glass-card p-6"
           >
             <div className="flex items-center gap-3 mb-6">

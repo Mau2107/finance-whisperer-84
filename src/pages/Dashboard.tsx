@@ -11,7 +11,6 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
-import { useAuth } from '@/contexts/AuthContext';
 import { useTransactions } from '@/hooks/useTransactions';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { TransactionList } from '@/components/dashboard/TransactionList';
@@ -23,7 +22,6 @@ import { Helmet } from 'react-helmet-async';
 
 export default function Dashboard() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const { user } = useAuth();
   const {
     transactions,
     isLoading,
@@ -35,8 +33,7 @@ export default function Dashboard() {
     deleteTransaction,
   } = useTransactions();
 
-  // Get user's name from Google profile metadata
-  const userName = user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email?.split('@')[0] || 'there';
+  const userName = 'there';
 
   const totalIncome = getTotalIncome();
   const totalExpense = getTotalExpense();
@@ -95,7 +92,7 @@ export default function Dashboard() {
         >
           <div>
             <h1 className="text-3xl font-bold text-foreground">
-              Welcome back, {userName.split(' ')[0]}! 👋
+              Welcome back, {userName}! 👋
             </h1>
             <p className="text-muted-foreground mt-1">
               {format(now, 'EEEE, MMMM d, yyyy')}

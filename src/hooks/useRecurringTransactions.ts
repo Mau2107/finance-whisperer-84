@@ -1,7 +1,4 @@
-import { useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
 
 export type RecurrenceFrequency = 'daily' | 'weekly' | 'monthly' | 'yearly';
@@ -21,140 +18,102 @@ export interface RecurringTransaction {
   updated_at: string;
 }
 
+// Mock data for demo purposes
+const MOCK_RECURRING: RecurringTransaction[] = [
+  {
+    id: '1',
+    user_id: 'demo',
+    type: 'expense',
+    amount: 499,
+    category: 'subscriptions',
+    description: 'Netflix subscription',
+    payment_method: 'card',
+    frequency: 'monthly',
+    next_run_date: new Date(Date.now() + 604800000).toISOString().split('T')[0],
+    is_active: true,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: '2',
+    user_id: 'demo',
+    type: 'expense',
+    amount: 999,
+    category: 'subscriptions',
+    description: 'Spotify Premium',
+    payment_method: 'card',
+    frequency: 'monthly',
+    next_run_date: new Date(Date.now() + 1209600000).toISOString().split('T')[0],
+    is_active: true,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: '3',
+    user_id: 'demo',
+    type: 'income',
+    amount: 85000,
+    category: 'salary',
+    description: 'Monthly salary',
+    payment_method: 'bank_transfer',
+    frequency: 'monthly',
+    next_run_date: new Date(Date.now() + 2592000000).toISOString().split('T')[0],
+    is_active: true,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+];
+
 export function useRecurringTransactions() {
-  const { user } = useAuth();
-  const queryClient = useQueryClient();
+  const [recurringTransactions, setRecurringTransactions] = useState<RecurringTransaction[]>(MOCK_RECURRING);
+  const [isLoading] = useState(false);
 
-  const { data: recurringTransactions = [], isLoading } = useQuery({
-    queryKey: ['recurring-transactions', user?.id],
-    queryFn: async () => {
-      if (!user) return [];
-      
-      const { data, error } = await supabase
-        .from('recurring_transactions')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('next_run_date', { ascending: true });
-
-      if (error) throw error;
-      return data as RecurringTransaction[];
-    },
-    enabled: !!user,
-  });
-
-  // Realtime sync
-  useEffect(() => {
-    if (!user) return;
-
-    const channel = supabase
-      .channel('recurring-transactions-realtime')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'recurring_transactions',
-          filter: `user_id=eq.${user.id}`,
-        },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ['recurring-transactions', user.id] });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user, queryClient]);
-
-  const addRecurring = useMutation({
-    mutationFn: async (recurring: Omit<RecurringTransaction, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
-      if (!user) throw new Error('Not authenticated');
-
-      const { data, error } = await supabase
-        .from('recurring_transactions')
-        .insert({
-          ...recurring,
-          user_id: user.id,
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['recurring-transactions', user?.id] });
+  const addRecurring = {
+    mutate: useCallback((recurring: Omit<RecurringTransaction, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
+      const newRecurring: RecurringTransaction = {
+        ...recurring,
+        id: crypto.randomUUID(),
+        user_id: 'demo',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      setRecurringTransactions((prev) => [...prev, newRecurring]);
       toast.success('Recurring transaction created');
-    },
-    onError: (error) => {
-      toast.error('Failed to create recurring transaction');
-      console.error(error);
-    },
-  });
+    }, []),
+  };
 
-  const updateRecurring = useMutation({
-    mutationFn: async ({ id, ...updates }: Partial<RecurringTransaction> & { id: string }) => {
-      const { data, error } = await supabase
-        .from('recurring_transactions')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['recurring-transactions', user?.id] });
+  const updateRecurring = {
+    mutate: useCallback(({ id, ...updates }: Partial<RecurringTransaction> & { id: string }) => {
+      setRecurringTransactions((prev) =>
+        prev.map((r) =>
+          r.id === id
+            ? { ...r, ...updates, updated_at: new Date().toISOString() }
+            : r
+        )
+      );
       toast.success('Recurring transaction updated');
-    },
-    onError: (error) => {
-      toast.error('Failed to update recurring transaction');
-      console.error(error);
-    },
-  });
+    }, []),
+  };
 
-  const deleteRecurring = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('recurring_transactions')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['recurring-transactions', user?.id] });
+  const deleteRecurring = {
+    mutate: useCallback((id: string) => {
+      setRecurringTransactions((prev) => prev.filter((r) => r.id !== id));
       toast.success('Recurring transaction deleted');
-    },
-    onError: (error) => {
-      toast.error('Failed to delete recurring transaction');
-      console.error(error);
-    },
-  });
+    }, []),
+  };
 
-  const toggleActive = useMutation({
-    mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
-      const { data, error } = await supabase
-        .from('recurring_transactions')
-        .update({ is_active })
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['recurring-transactions', user?.id] });
-      toast.success(data.is_active ? 'Recurring transaction activated' : 'Recurring transaction paused');
-    },
-    onError: (error) => {
-      toast.error('Failed to update status');
-      console.error(error);
-    },
-  });
+  const toggleActive = {
+    mutate: useCallback(({ id, is_active }: { id: string; is_active: boolean }) => {
+      setRecurringTransactions((prev) =>
+        prev.map((r) =>
+          r.id === id
+            ? { ...r, is_active, updated_at: new Date().toISOString() }
+            : r
+        )
+      );
+      toast.success(is_active ? 'Recurring transaction activated' : 'Recurring transaction paused');
+    }, []),
+  };
 
   return {
     recurringTransactions,
