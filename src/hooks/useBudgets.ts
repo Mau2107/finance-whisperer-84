@@ -40,7 +40,7 @@ export const useBudgets = () => {
   }, [budgets]);
 
   const updateBudget = useCallback((id: string, updates: Partial<Budget>) => {
-    setBudgets((prev) =>
+    persistAndSet((prev) =>
       prev.map((b) => (b.id === id ? { ...b, ...updates } : b))
     );
     toast.success('Budget updated');
