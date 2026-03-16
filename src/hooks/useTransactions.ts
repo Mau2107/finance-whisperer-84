@@ -110,9 +110,26 @@ const MOCK_TRANSACTIONS: Transaction[] = [
   },
 ];
 
+const STORAGE_KEY = 'financeiq_transactions';
+
+const loadTransactions = (): Transaction[] => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    return stored ? JSON.parse(stored) : MOCK_TRANSACTIONS;
+  } catch { return MOCK_TRANSACTIONS; }
+};
+
 export const useTransactions = () => {
-  const [transactions, setTransactions] = useState<Transaction[]>(MOCK_TRANSACTIONS);
+  const [transactions, setTransactions] = useState<Transaction[]>(loadTransactions);
   const [isLoading] = useState(false);
+
+  const persistAndSet = useCallback((updater: (prev: Transaction[]) => Transaction[]) => {
+    setTransactions(prev => {
+      const next = updater(prev);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      return next;
+    });
+  }, []);
 
   const addTransaction = useCallback((transaction: Omit<Transaction, 'id' | 'createdAt' | 'updatedAt'>) => {
     const newTransaction: Transaction = {
@@ -121,12 +138,12 @@ export const useTransactions = () => {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-    setTransactions((prev) => [newTransaction, ...prev]);
+    persistAndSet((prev) => [newTransaction, ...prev]);
     toast.success('Transaction added');
-  }, []);
+  }, [persistAndSet]);
 
   const updateTransaction = useCallback((id: string, updates: Partial<Transaction>) => {
-    setTransactions((prev) =>
+    persistAndSet((prev) =>
       prev.map((tx) =>
         tx.id === id
           ? { ...tx, ...updates, updatedAt: new Date().toISOString() }
@@ -134,12 +151,12 @@ export const useTransactions = () => {
       )
     );
     toast.success('Transaction updated');
-  }, []);
+  }, [persistAndSet]);
 
   const deleteTransaction = useCallback((id: string) => {
-    setTransactions((prev) => prev.filter((tx) => tx.id !== id));
+    persistAndSet((prev) => prev.filter((tx) => tx.id !== id));
     toast.success('Transaction deleted');
-  }, []);
+  }, [persistAndSet]);
 
   // Computed values
   const getTotalIncome = useCallback(() => 

@@ -9,8 +9,17 @@ const MOCK_BUDGETS: Budget[] = [
   { id: '3', category: 'entertainment', limit: 3000, spent: 0, period: 'monthly' },
 ];
 
+const STORAGE_KEY = 'financeiq_budgets';
+const loadBudgets = (): Budget[] => {
+  try { const s = localStorage.getItem(STORAGE_KEY); return s ? JSON.parse(s) : MOCK_BUDGETS; } catch { return MOCK_BUDGETS; }
+};
+
 export const useBudgets = () => {
-  const [budgets, setBudgets] = useState<Budget[]>(MOCK_BUDGETS);
+  const [budgets, setBudgets] = useState<Budget[]>(loadBudgets);
+
+  const persistAndSet = useCallback((updater: (prev: Budget[]) => Budget[]) => {
+    setBudgets(prev => { const next = updater(prev); localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); return next; });
+  }, []);
   const [isLoading] = useState(false);
 
   const addBudget = useCallback((budget: Omit<Budget, 'id' | 'spent'>) => {
@@ -26,19 +35,19 @@ export const useBudgets = () => {
       id: crypto.randomUUID(),
       spent: 0,
     };
-    setBudgets((prev) => [...prev, newBudget]);
+    persistAndSet((prev) => [...prev, newBudget]);
     toast.success('Budget created');
   }, [budgets]);
 
   const updateBudget = useCallback((id: string, updates: Partial<Budget>) => {
-    setBudgets((prev) =>
+    persistAndSet((prev) =>
       prev.map((b) => (b.id === id ? { ...b, ...updates } : b))
     );
     toast.success('Budget updated');
   }, []);
 
   const deleteBudget = useCallback((id: string) => {
-    setBudgets((prev) => prev.filter((b) => b.id !== id));
+    persistAndSet((prev) => prev.filter((b) => b.id !== id));
     toast.success('Budget deleted');
   }, []);
 

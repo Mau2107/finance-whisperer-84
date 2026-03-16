@@ -64,8 +64,17 @@ const MOCK_RECURRING: RecurringTransaction[] = [
   },
 ];
 
+const STORAGE_KEY = 'financeiq_recurring';
+const loadRecurring = (): RecurringTransaction[] => {
+  try { const s = localStorage.getItem(STORAGE_KEY); return s ? JSON.parse(s) : MOCK_RECURRING; } catch { return MOCK_RECURRING; }
+};
+
 export function useRecurringTransactions() {
-  const [recurringTransactions, setRecurringTransactions] = useState<RecurringTransaction[]>(MOCK_RECURRING);
+  const [recurringTransactions, setRecurringTransactions] = useState<RecurringTransaction[]>(loadRecurring);
+
+  const persistAndSet = useCallback((updater: (prev: RecurringTransaction[]) => RecurringTransaction[]) => {
+    setRecurringTransactions(prev => { const next = updater(prev); localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); return next; });
+  }, []);
   const [isLoading] = useState(false);
 
   const addRecurring = {
@@ -77,14 +86,14 @@ export function useRecurringTransactions() {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
-      setRecurringTransactions((prev) => [...prev, newRecurring]);
+      persistAndSet((prev) => [...prev, newRecurring]);
       toast.success('Recurring transaction created');
     }, []),
   };
 
   const updateRecurring = {
     mutate: useCallback(({ id, ...updates }: Partial<RecurringTransaction> & { id: string }) => {
-      setRecurringTransactions((prev) =>
+      persistAndSet((prev) =>
         prev.map((r) =>
           r.id === id
             ? { ...r, ...updates, updated_at: new Date().toISOString() }
@@ -97,14 +106,14 @@ export function useRecurringTransactions() {
 
   const deleteRecurring = {
     mutate: useCallback((id: string) => {
-      setRecurringTransactions((prev) => prev.filter((r) => r.id !== id));
+      persistAndSet((prev) => prev.filter((r) => r.id !== id));
       toast.success('Recurring transaction deleted');
     }, []),
   };
 
   const toggleActive = {
     mutate: useCallback(({ id, is_active }: { id: string; is_active: boolean }) => {
-      setRecurringTransactions((prev) =>
+      persistAndSet((prev) =>
         prev.map((r) =>
           r.id === id
             ? { ...r, is_active, updated_at: new Date().toISOString() }
