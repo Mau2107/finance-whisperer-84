@@ -106,7 +106,7 @@ export function useRecurringTransactions() {
 
   const deleteRecurring = {
     mutate: useCallback((id: string) => {
-      setRecurringTransactions((prev) => prev.filter((r) => r.id !== id));
+      persistAndSet((prev) => prev.filter((r) => r.id !== id));
       toast.success('Recurring transaction deleted');
     }, []),
   };
