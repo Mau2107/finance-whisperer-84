@@ -93,7 +93,7 @@ export function useRecurringTransactions() {
 
   const updateRecurring = {
     mutate: useCallback(({ id, ...updates }: Partial<RecurringTransaction> & { id: string }) => {
-      setRecurringTransactions((prev) =>
+      persistAndSet((prev) =>
         prev.map((r) =>
           r.id === id
             ? { ...r, ...updates, updated_at: new Date().toISOString() }
