@@ -9,8 +9,17 @@ const MOCK_BUDGETS: Budget[] = [
   { id: '3', category: 'entertainment', limit: 3000, spent: 0, period: 'monthly' },
 ];
 
+const STORAGE_KEY = 'financeiq_budgets';
+const loadBudgets = (): Budget[] => {
+  try { const s = localStorage.getItem(STORAGE_KEY); return s ? JSON.parse(s) : MOCK_BUDGETS; } catch { return MOCK_BUDGETS; }
+};
+
 export const useBudgets = () => {
-  const [budgets, setBudgets] = useState<Budget[]>(MOCK_BUDGETS);
+  const [budgets, setBudgets] = useState<Budget[]>(loadBudgets);
+
+  const persistAndSet = useCallback((updater: (prev: Budget[]) => Budget[]) => {
+    setBudgets(prev => { const next = updater(prev); localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); return next; });
+  }, []);
   const [isLoading] = useState(false);
 
   const addBudget = useCallback((budget: Omit<Budget, 'id' | 'spent'>) => {

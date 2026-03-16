@@ -64,8 +64,17 @@ const MOCK_RECURRING: RecurringTransaction[] = [
   },
 ];
 
+const STORAGE_KEY = 'financeiq_recurring';
+const loadRecurring = (): RecurringTransaction[] => {
+  try { const s = localStorage.getItem(STORAGE_KEY); return s ? JSON.parse(s) : MOCK_RECURRING; } catch { return MOCK_RECURRING; }
+};
+
 export function useRecurringTransactions() {
-  const [recurringTransactions, setRecurringTransactions] = useState<RecurringTransaction[]>(MOCK_RECURRING);
+  const [recurringTransactions, setRecurringTransactions] = useState<RecurringTransaction[]>(loadRecurring);
+
+  const persistAndSet = useCallback((updater: (prev: RecurringTransaction[]) => RecurringTransaction[]) => {
+    setRecurringTransactions(prev => { const next = updater(prev); localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); return next; });
+  }, []);
   const [isLoading] = useState(false);
 
   const addRecurring = {
