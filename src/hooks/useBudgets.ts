@@ -35,7 +35,7 @@ export const useBudgets = () => {
       id: crypto.randomUUID(),
       spent: 0,
     };
-    setBudgets((prev) => [...prev, newBudget]);
+    persistAndSet((prev) => [...prev, newBudget]);
     toast.success('Budget created');
   }, [budgets]);
 
