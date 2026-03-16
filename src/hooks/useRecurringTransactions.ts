@@ -86,7 +86,7 @@ export function useRecurringTransactions() {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
-      setRecurringTransactions((prev) => [...prev, newRecurring]);
+      persistAndSet((prev) => [...prev, newRecurring]);
       toast.success('Recurring transaction created');
     }, []),
   };
