@@ -113,7 +113,7 @@ export function useRecurringTransactions() {
 
   const toggleActive = {
     mutate: useCallback(({ id, is_active }: { id: string; is_active: boolean }) => {
-      setRecurringTransactions((prev) =>
+      persistAndSet((prev) =>
         prev.map((r) =>
           r.id === id
             ? { ...r, is_active, updated_at: new Date().toISOString() }

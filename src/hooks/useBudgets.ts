@@ -47,7 +47,7 @@ export const useBudgets = () => {
   }, []);
 
   const deleteBudget = useCallback((id: string) => {
-    setBudgets((prev) => prev.filter((b) => b.id !== id));
+    persistAndSet((prev) => prev.filter((b) => b.id !== id));
     toast.success('Budget deleted');
   }, []);
 
