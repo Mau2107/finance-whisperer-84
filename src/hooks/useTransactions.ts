@@ -110,8 +110,17 @@ const MOCK_TRANSACTIONS: Transaction[] = [
   },
 ];
 
+const STORAGE_KEY = 'financeiq_transactions';
+
+const loadTransactions = (): Transaction[] => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    return stored ? JSON.parse(stored) : MOCK_TRANSACTIONS;
+  } catch { return MOCK_TRANSACTIONS; }
+};
+
 export const useTransactions = () => {
-  const [transactions, setTransactions] = useState<Transaction[]>(MOCK_TRANSACTIONS);
+  const [transactions, setTransactions] = useState<Transaction[]>(loadTransactions);
   const [isLoading] = useState(false);
 
   const addTransaction = useCallback((transaction: Omit<Transaction, 'id' | 'createdAt' | 'updatedAt'>) => {
